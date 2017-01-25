@@ -308,4 +308,40 @@ return {
       CREATE INDEX IF NOT EXISTS ON apis(request_path);
     ]]
   },
+  {
+    name = "2017-01-24-132600_upstream_timeouts",
+    up = [[
+      ALTER TABLE apis ADD upstream_connect_timeout int;
+      ALTER TABLE apis ADD upstream_send_timeout int;
+      ALTER TABLE apis ADD upstream_read_timeout int;
+    ]],
+    down = [[
+      ALTER TABLE apis DROP COLUMN IF EXISTS upstream_connect_timeout;
+      ALTER TABLE apis DROP COLUMN IF EXISTS upstream_send_timeout;
+      ALTER TABLE apis DROP COLUMN IF EXISTS upstream_read_timeout;
+    ]]
+  },
+  {
+    name = "2017-01-24-132600_upstream_timeouts_2",
+    up = function(_, _, dao)
+      local rows, err = dao.db:query([[
+        SELECT * FROM apis;
+      ]])
+      if err then
+        return err
+      end
+
+      for _, row in ipairs(rows) do
+        local _, err = dao.apis:update({
+          upstream_connect_timeout = 60000,
+          upstream_send_timeout = 60000,
+          upstream_read_timeout = 60000,
+        }, { id = row.id })
+        if err then
+          return err
+        end
+      end
+    end,
+    down = function(_, _, dao) end
+  },
 }
